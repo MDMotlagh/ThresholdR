@@ -18,8 +18,7 @@
 #' @examples
 #' data("adt.df")
 #' calculateBICvalues(adt.df, k=3, parallel = FALSE)
-#'#' @export
-#'
+#' @export
 calculateBICvalues <- function(data, k=3, parallel = FALSE) {
   require(foreach)
   require(doParallel)

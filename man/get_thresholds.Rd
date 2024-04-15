@@ -24,6 +24,4 @@ first component (M1+3SD)
 \examples{
 data("adt.df")
 thresholds.test <- get_thresholds(fittings = fittings.test, k_list = k_list.test)
-#' @export
-
 }

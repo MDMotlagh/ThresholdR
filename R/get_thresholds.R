@@ -17,8 +17,7 @@
 #' @examples
 #' data("adt.df")
 #' thresholds.test <- get_thresholds(fittings = fittings.test, k_list = k_list.test)
-#'#' @export
-#'
+#' @export
 get_thresholds <- function(fittings, k_list){
   thresholds <- data.frame(row.names = names(bic_values),
                            bimodal_thr = rep(NA, length(names(bic_values))),

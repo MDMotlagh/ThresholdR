@@ -27,8 +27,7 @@
 #' @examples
 #' data("adt.df")
 #' fittings.test <- fit_k(data = adt.df[,1:3], k_list = k_list.test, margin.den = 0.1, seed = 42)
-#'#' @export
-#'
+#' @export
 fit_k <- function(data, k_list, margin.den=0.1,epsilon = 0.01, maxit = 10000, maxrestarts = 5, seed) {
   require(mixtools)
   require(mclust)

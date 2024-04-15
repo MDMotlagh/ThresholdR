@@ -19,8 +19,6 @@
 #' data("adt.df")
 #' GetAllPossibleFits(bic_values, margin_thr=0.1)
 #' @export
-#'
-#'
 getAllPossibleFits <- function(bic_values, margin_thr) {
   k_list <- c()
   bic_values_indices <- lapply(bic_values, function(vec) {
