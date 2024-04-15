@@ -3,7 +3,7 @@ Type: Package
 Title: A Denoising Pipeline for ADT data from CITE-seq experiments
 Version: 0.1.0
 Author: Mohammad Oliaeimotlagh
-Maintainer: Mohammad Oliaeimotlagh (oliaeimotlagh@gmail.com)
+Maintainer: Mohammad Oliaeimotlagh oliaeimotlagh@gmail.com
 Description: ThresholdR uses GMM to identify the noise population in each surface marker across cells in the experiment. Then it calculates the upper threshold of the noise distribution to separate expressing and non-expressing cells for each surface marker.
 License: MIT License
 Encoding: UTF-8
