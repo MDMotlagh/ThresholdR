@@ -23,6 +23,4 @@ fittings whether k=i+1 has greater BIC value than k=i.
 \examples{
 data("adt.df")
 GetAllPossibleFits(bic_values, margin_thr=0.1)
-
-
 }

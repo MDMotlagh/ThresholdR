@@ -24,5 +24,4 @@ This function publishes bimodal and trimodal fittings with assigned thresholds i
 \examples{
 data("adt.df")
 publish_fittings_thr(fittings = fittings.test, k_list =k_list.test ,thresholds = thresholds.test, path = "~/test_run/figures/")
-
 }

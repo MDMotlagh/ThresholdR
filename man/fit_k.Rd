@@ -48,5 +48,6 @@ Fittig is done through normalmixEm function from mixtools R package
 \examples{
 data("adt.df")
 fittings.test <- fit_k(data = adt.df[,1:3], k_list = k_list.test, margin.den = 0.1, seed = 42)
+#' @export
 
 }

@@ -25,5 +25,6 @@ mclust R package. The higher BIC value points to better fit through mclust packa
 \examples{
 data("adt.df")
 calculateBICvalues(adt.df, k=3, parallel = FALSE)
+#' @export
 
 }

@@ -18,6 +18,7 @@
 #' @examples
 #' data("adt.df")
 #' GetAllPossibleFits(bic_values, margin_thr=0.1)
+#' @export
 #'
 #'
 getAllPossibleFits <- function(bic_values, margin_thr) {
