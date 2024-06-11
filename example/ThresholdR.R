@@ -19,6 +19,7 @@ object_dir <- "/Users/ataraskin/Git/DataAnalysisProjects/CITE-Seq/Melissa_Human_
 object_dir_current <- "/Users/ataraskin/Git/DataAnalysisProjects/CITE-Seq/Melissa_Human_CITE-Seq_2023/Modified_pipeline/Objects/ThresholdeR"
 folder_with_plots <- "/Users/ataraskin/Git/DataAnalysisProjects/CITE-Seq/Melissa_Human_CITE-Seq_2023/Modified_pipeline/Objects/ThresholdeR/plots"
 object_postfix <- "_DoubletFinder_Demulti_MT_BPC"
+fittings_path <- "/Users/ataraskin/Git/DataAnalysisProjects/CITE-Seq/Melissa_Human_CITE-Seq_2023/Modified_pipeline/Objects/ThresholdeR/Fittings"
 setwd("/Users/ataraskin/Git/DataAnalysisProjects/CITE-Seq/Melissa_Human_CITE-Seq_2023/Modified_pipeline/Objects/ThresholdeR") 
 source("/Users/ataraskin/Git/DataAnalysisProjects/CITE-Seq/Melissa_Human_CITE-Seq_2023/Modified_pipeline/05_ThresholdeR/functions.R") 
 demult.dblfinder <- readRDS("test.RDS") 
@@ -98,12 +99,23 @@ for (marker in main_markers) {
   print(p)
 }
 
+for (marker in main_markers) {
+  p <- ggplot(adt[adt[, marker] > 0, ], aes(x = adt[adt[, marker] > 0, marker])) +
+  geom_histogram(binwidth = 0.05, fill = "blue", color = "black", alpha = 0.7) +
+  labs(title = paste("Histogram of", marker, "Values"),
+       x = "Marker Values",
+       y = "Count")
+  print(p)
+}
+
 #For CD3 and CD19, we use the domain knowledge that these abs have bimodal distributions
 
 ############################################################
-# Margin of threshold estimation
+# Margin of threshold estimation (values in percents)
 ###########################################################
-all_margins <- defineMargin(main_markers, bic_values) # in percents
+main_margins <- defineMargin(main_markers, bic_values) # in percents
+all_margins <- defineMargin(names(bic_values), bic_values) # in percents
+
 
 ############################################################
 # Get all possible fits
@@ -112,7 +124,9 @@ all_margins <- defineMargin(main_markers, bic_values) # in percents
 # k_list output usually shorter than main_markers, but they should match!!!
 k_list <- list()
 for (n in 1:length(bic_values)) {
-  k_list <- c(k_list, GetAllPossibleFits(bic_values = bic_values[n], margin_thr = 0.10))
+  k_list <- c(k_list, GetAllPossibleFits(bic_values = bic_values[n], 
+                                         margin_thr = 0.01 # Based on info from main_margins table (NOT percents, part of 1)
+                                         ))
 }
 
 
@@ -129,12 +143,122 @@ bad_abs <- setdiff(all_markers, names(k_list))
 bad_abs <- unique(c(bad_abs, error_abs, warning_abs))
 length(bad_abs)
 
-# List of antibodies for further analysis
+##########################################################################
+# 1. List of antibodies for further analysis. Here ONLY main markers
+##########################################################################
 markers_with_fits <- intersect(main_markers, names(k_list))
     
-fitting <- fit_k(data = adt[ , markers_with_fits], k_list = k_list[markers_with_fits], margin.den = 0.1, epsilon = 0.000001, seed = 42)
+fittings <- fit_k(data = adt[ , markers_with_fits], k_list = k_list[markers_with_fits], margin.den = 0.1, epsilon = 0.000001, seed = 42)
 
-# Error
+
 thresholds <- get_thresholds(fittings = fittings, k_list = k_list)
 
-publish_fittings_thr(fittings = fittings, k_list =k_list ,thresholds = thresholds, path = "03 Fittings/", seed = 42)
+##########################################################################
+# Publishing
+dir_name <- "main_markers_fittings"
+path_to_save_fittings <- file.path(fittings_path, dir_name)
+if (!dir.exists(path_to_save_fittings)) {
+  # Create the directory
+  dir.create(path_to_save_fittings)
+  cat("Directory created:", path_to_save_fittings, "\n")
+} else {
+  cat("Directory already exists:", path_to_save_fittings, "\n")
+}
+publish_fittings_thr(fittings = fittings, k_list =k_list ,thresholds = thresholds, path = path_to_save_fittings, seed = 42)
+##########################################################################
+
+
+
+##########################################################################
+# 2. List of antibodies for further analysis. ALL markers
+##########################################################################
+
+markers_with_fits <- intersect(all_markers, names(k_list))
+
+# Error
+fittings <- fit_k(data = adt[ , markers_with_fits], 
+                  k_list = k_list[markers_with_fits], 
+                  margin.den = 0.1, 
+                  epsilon = 0.000001, 
+                  maxrestarts = 5000,
+                  seed = 42)
+# Markers, discarded during the current step:
+discarded_markers <- setdiff(markers_with_fits, names(fittings))
+
+bad_abs <- unique(c(bad_abs, discarded_markers))
+length(bad_abs)
+  
+thresholds_all <- get_thresholds(fittings = fittings, k_list = k_list)
+
+
+##########################################################################
+# Publishing
+dir_name <- "all_markers_fittings"
+path_to_save_fittings <- file.path(fittings_path, dir_name)
+if (!dir.exists(path_to_save_fittings)) {
+  # Create the directory
+  dir.create(path_to_save_fittings)
+  cat("Directory created:", path_to_save_fittings, "\n")
+} else {
+  cat("Directory already exists:", path_to_save_fittings, "\n")
+}
+publish_fittings_thr(fittings = fittings,
+                     k_list = k_list,
+                     thresholds = thresholds,
+                     path = path_to_save_fittings,
+                     seed = 42)
+
+# thresholds_table <- look_fittings_thr(fittings = fittings,
+#                                        k_list = k_list,
+#                                        thresholds = thresholds_all,
+#                                        path = path_to_save_fittings,
+#                                        seed = 42)
+##########################################################################
+
+
+
+##########################################################################
+# 3. Automatic processing. ALL markers
+##########################################################################
+
+
+# Count NA values in each row
+na_counts <- rowSums(is.na(thresholds_all))
+
+# Separate rows based on NA count
+one_value <- thresholds_all[na_counts == 1, ]
+two_values <- thresholds_all[na_counts == 0, ]
+
+# No need to filter
+one_value$threshold <- apply(one_value, 1, function(row) row[!is.na(row)])
+set_of_thresholds_1 <- one_value["threshold"]
+
+
+two_values$threshold <- ifelse(two_values$bimodal_thr>=two_values$trimodal_thr, two_values$bimodal_thr, two_values$trimodal_thr)
+set_of_thresholds_2 <- two_values["threshold"]
+
+set_of_thresholds <- rbind(set_of_thresholds_1, set_of_thresholds_2)
+nrow(set_of_thresholds)
+
+
+# Saving the results as .RDS
+saveRDS(set_of_thresholds, file.path(object_dir_current, "set_of_thresholds.rds"))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
