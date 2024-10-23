@@ -3,7 +3,7 @@ ThresholdR uses Gaussian Mixture Models concept to identify the noise population
 # Citation
 # Installation
 # Instructions
-# Contents
+## Contents
 | Folder Name | Description | Details |
 | --------------- | --------------- | --------------- |
 | Row 1, Cell 1   | Row 1, Cell 2   | Row 1, Cell 3   |
