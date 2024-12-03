@@ -10,6 +10,5 @@ devtools::install_guithub('MDMotlagh/ThresholdR')
 | Folder | Description | Details |
 | --------------- | --------------- | --------------- |
 | data   | PBMC10K and bmcite datasets   | PBMC10K immune profiling dataset acquired from 10x genomics website. bmcite is available through SeuratData R package.   |
-| vignettes   |   | PBMC10K immune profiling dataset acquired from 10x genomics website. bmcite is available through SeuratData R package.   |
-| Row 3, Cell 1   | Row 3, Cell 2   | Row 3, Cell 3   |
+| vignettes   | The example codes  | PBMC10K immune profiling dataset acquired from 10x genomics website. bmcite is available through SeuratData R package.   |
 
