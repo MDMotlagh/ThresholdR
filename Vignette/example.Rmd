@@ -1,0 +1,104 @@
+---
+title: "PBMC10K_example"
+output: html_document
+date: "2024-11-12"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### 1. load the libraries and the data
+```{r, message=FALSE, warning=FALSE}
+library(Seurat)
+library(readr)
+library(ggplot2)
+library(dplyr)
+library(SeuratData)
+set.seed(42)
+setwd('~ThresholdR/')
+pbmc10k <- Read10X_h5('data/10k_Human_PBMC_TotalSeqC_5p_gemx_10k_Human_PBMC_TotalSeqC_5p_gemx_count_sample_filtered_feature_bc_matrix.h5')
+```
+
+### 2. Process the seurat object
+```{r}
+so <- CreateAssayObject(counts = pbmc10k$`Gene Expression`)
+so <- CreateSeuratObject(so, assay = 'RNA')
+so[['ADT']] <- CreateAssayObject(counts = pbmc10k$`Antibody Capture`)
+so <- NormalizeData(so, assay = 'ADT', normalization.method = "CLR")
+so[["percent.mt"]] <- PercentageFeatureSet(so, pattern = "^MT-", assay = "RNA")
+
+# Visualize the QC metrics as violin plots
+VlnPlot(so, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3, group.by = 'orig.ident')
+```
+
+### 3. Thresholding the ADT data
+
+```{r}
+adt <- as.data.frame(t(as.matrix(so@assays$ADT@data)))
+source('functions.R')
+
+bic_values <- c()
+error_abs <- c()
+warning_abs <- c()
+# adt <- adt[,top.ten]
+markers <- colnames(adt)
+#2.1. Get BIC values####
+
+suppressWarnings({
+  
+  for (num in seq_along(markers)) {
+    tryCatch({
+      withCallingHandlers({
+        invisible(capture.output({
+          marker_data <- as.data.frame(adt[, markers[[num]], drop = FALSE]) 
+          bic_values[markers[[num]]] <- calculateBICvalues(marker_data, k = 3, parallel = FALSE)
+        }))
+      }, warning = function(w) {
+        # Without "<<-" sign instead of "<-" you won't be able to access those vectors outside the loop.
+        # Say thanks to R.
+        warning_abs <<- c(warning_abs, markers[[num]])
+        message(paste("Warning occurred for ", markers[[num]], "\nWarning:", conditionMessage(w)))
+        invokeRestart("muffleWarning")  # to continue execution without stopping at the warning
+      })
+    }, error = function(e) {
+      # Without "<<-" sign instead of "<-" you won't be able to access those vectors outside the loop.
+      # Say thanks to R.
+      error_abs <<- c(error_abs, markers[[num]])
+      message(paste("Error occurred for ", markers[[num]], "\nError:", conditionMessage(e)))
+      bic_values[markers[[num]]] <- NA  # value indicating the error
+    })
+  }
+  
+})
+
+
+sort(colnames(adt))
+# look for the bimodal main markers in your experiment maybe CD45RA, CD45RO, CD127, CD197, CD62L, CD95, CD27
+for (i in c("CD3", "CD11c" , "CD19.1")) {
+  print(i)
+  print(ggplot(adt[adt[,i]>0,], aes(x=adt[adt[,i]>0,i]))+
+          geom_density()+
+          labs(title = i,x=i))
+}
+#2.2. Get K list####
+
+k_list <- get_k_list(bic_values = bic_values, main.markers = c("CD3", 'CD11c'))
+
+sort(markers)
+markers_with_fits <- names(k_list)
+#2.3. Fit Ks for each marker####
+
+fittings <- fit_k(data = adt[ , markers_with_fits], k_list = k_list[markers_with_fits], margin.den = 0.01, epsilon = 0.001, seed = 42)
+
+
+#2.4. Get Thresholds####
+
+thresholds <- get_thresholds(fittings = fittings, k_list = k_list[markers_with_fits])
+
+thresholds.nocorrection <- get_thresholds(fittings = fittings.nocorrection, k_list = k_list[markers_with_fits])
+
+#2.5. Publish the Fittings####
+publish_fittings_thr(fittings = fittings, k_list =k_list[markers_with_fits] ,thresholds = thresholds, path = "figures/fittings/", seed = 42)
+
+```
