@@ -1,13 +1,23 @@
 Package: ThresholdR
 Type: Package
-Title: A Denoising Pipeline for ADT data from CITE-seq experiments
+Title: ThresholdR for denoising ADT data in CITEseq experiments
 Version: 0.1.0
-Author: Mohammad Oliaeimotlagh
-Authors@R: c(person("Mohammad", "Oliaeimotlagh", role = c("aut", "cre"),
-	email = "moliaeimotlagh@augusta.edu", comment = c(ORCID = "0000-0002-2333-2556")))
-Description: ThresholdR uses GMM to identify the noise population in each surface marker across cells in the experiment. Then it calculates the upper threshold of the noise distribution to separate expressing and non-expressing cells for each surface marker.
-License: MIT License
+Authors@R: c(
+    person(
+      "Mohammad", "Oliaeimotlagh",
+      email = "oliaeimm@pennmedicine.upenn.edu",
+      role = c("aut", "cre")
+    )
+  )
+Description: Noise usually contaminates ADT data in CITEseq experiments, which needs to be removed for better cell type annotation and downstream analyses. ThresholdR achieves this through fitting Gaussian Mixture Model (GMM)s.
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.3.1
-Imports: dplyr, ggplot2, mclust, mixtools
+Imports:
+    mixtools,
+    mclust,
+    foreach,
+    doParallel,
+    ggplot2,
+    AdaptGauss
+RoxygenNote: 7.3.2

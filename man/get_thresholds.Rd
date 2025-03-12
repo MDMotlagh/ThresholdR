@@ -2,26 +2,21 @@
 % Please edit documentation in R/get_thresholds.R
 \name{get_thresholds}
 \alias{get_thresholds}
-\title{Get Thresholds}
+\title{Calculate different thresholds for bi- and tri-modal fittings}
 \usage{
 get_thresholds(fittings, k_list)
 }
 \arguments{
-\item{fittings}{dataframe of normalized ADT values: Cells as rows and Protein as columns}
+\item{fittings}{A list of fitted parameters for each distribution (component) under each k across all markers.}
 
-\item{k_list}{a list of vectors, each vector contains values for possible components fitted best between k=1 to k=k for normalized distribution of each protein}
+\item{k_list}{A list with set of possible k values for each marker as an element.}
 }
 \value{
-a dataframe, `thresholds` including columns for thresholds of each fitting, namely:
-
-* `bimodal_thr` - thresold for bimodal (k=2) fittings
-* `trimodal_thr` - thresold for trimodal (k=3) fittings
+A data frame with calculated thresholds: bi_thr1 defines the mean+3SD of the first component and bi_cut refers to the cutpoint on x axis where the two components meet in a bimodal (k=2) distribution. tri_thr1 and tri_thr2 indicate mean+3SD of the first and second components in a trimodal (k=3) distribution. Subsequently, tri_cut1 and tri_cut2 represent the cutpoints between first and second component, and second and third components, repectively, in a trimodal distribution. The user should choose which thereshold to use the recomended value is mean+3SD of the first component in k=2.
 }
 \description{
-This function calculates the threshold based on mean and standard deviation of the
-first component (M1+3SD)
+Calculate different thresholds for bi- and tri-modal fittings
 }
 \examples{
-data("adt.df")
-thresholds.test <- get_thresholds(fittings = fittings.test, k_list = k_list.test)
+thresholds <- get_thresholds(fittings = fittings, k_list = k.list)
 }

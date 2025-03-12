@@ -2,26 +2,25 @@
 % Please edit documentation in R/publish_fittings_thr.R
 \name{publish_fittings_thr}
 \alias{publish_fittings_thr}
-\title{Publish Fittings with Assigned Thresholds}
+\title{Save the fitted plots for each possible k in surface marker distributions}
 \usage{
-publish_fittings_thr(fittings, k_list, thresholds, path = path)
+publish_fittings_thr(fittings, k_list, thresholds, path = path, seed = 42)
 }
 \arguments{
-\item{fittings}{a list of fittings for each protein, each containg fitting for all possible fits}
+\item{fittings}{A list of fitted parameters for each distribution (component) under each k across all markers.}
 
-\item{k_list}{a list of vectors, each vector contains values for possible components fitted best between k=1 to k=k for normalized distribution of each protein}
+\item{k_list}{A list with set of possible k values for each marker as an element.}
 
-\item{thresholds}{a dataframe of thresholds which has proteins or surface markers as rows and bimodal and/or trimodal thresholds as columns.}
+\item{thresholds}{A data frame with calculated thresholds.}
 
-\item{path}{the path you would like to save the fitting density plots.}
+\item{path}{A path to the directory in which the plots will be saved.}
 }
 \value{
-It prints the the plots as pdf files in the path provided for path argument.
+A data frame with calculated thresholds: bi_thr1 defines the mean+3SD of the first component and bi_cut refers to the cutpoint on x axis where the two components meet in a bimodal (k=2) distribution. tri_thr1 and tri_thr2 indicate mean+3SD of the first and second components in a trimodal (k=3) distribution. Subsequently, tri_cut1 and tri_cut2 represent the cutpoints between first and second component, and second and third components, repectively, in a trimodal distribution. The user should choose which thereshold to use the recomended value is mean+3SD of the first component in k=2.
 }
 \description{
-This function publishes bimodal and trimodal fittings with assigned thresholds in the location of interest.
+Save the fitted plots for each possible k in surface marker distributions
 }
 \examples{
-data("adt.df")
-publish_fittings_thr(fittings = fittings.test, k_list =k_list.test ,thresholds = thresholds.test, path = "~/test_run/figures/")
+publish_fittings_thr(fittings = fittings, k_list = k.list, thresholds = thresholds, path = '/Users/oliaei/Projects/Packages/ThresholdR/Vignette/02Plots/', seed = 42)
 }

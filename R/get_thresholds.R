@@ -1,34 +1,34 @@
-
-#' Get Thresholds
+#' Calculate different thresholds for bi- and tri-modal fittings
 #'
-#' This function calculates the threshold based on mean and standard deviation of the
-#' first component (M1+3SD)
-#'
-#'
-#' @param fittings dataframe of normalized ADT values: Cells as rows and Protein as columns
-#' @param k_list a list of vectors, each vector contains values for possible components fitted best between k=1 to k=k for normalized distribution of each protein
-#'
-#' @return a dataframe, `thresholds` including columns for thresholds of each fitting, namely:
-#'
-#' * `bimodal_thr` - thresold for bimodal (k=2) fittings
-#' * `trimodal_thr` - thresold for trimodal (k=3) fittings
-#'
-#'
+#' @param fittings A list of fitted parameters for each distribution (component) under each k across all markers.
+#' @param k_list A list with set of possible k values for each marker as an element.
+#' @returns A data frame with calculated thresholds: bi_thr1 defines the mean+3SD of the first component and bi_cut refers to the cutpoint on x axis where the two components meet in a bimodal (k=2) distribution. tri_thr1 and tri_thr2 indicate mean+3SD of the first and second components in a trimodal (k=3) distribution. Subsequently, tri_cut1 and tri_cut2 represent the cutpoints between first and second component, and second and third components, repectively, in a trimodal distribution. The user should choose which thereshold to use the recomended value is mean+3SD of the first component in k=2.
 #' @examples
-#' data("adt.df")
-#' thresholds.test <- get_thresholds(fittings = fittings.test, k_list = k_list.test)
-#' @export
+#' thresholds <- get_thresholds(fittings = fittings, k_list = k.list)
+
+
+
 get_thresholds <- function(fittings, k_list){
-  thresholds <- data.frame(row.names = names(bic_values),
-                           bimodal_thr = rep(NA, length(names(bic_values))),
-                           trimodal_thr = rep(NA, length(names(bic_values))))
-  for (i in names(bic_values)) {
+  thresholds <- data.frame(row.names = names(fittings),
+                           bi_thr = rep(NA, length(names(fittings))),
+                           bi_cut = rep(NA, length(names(fittings))),
+                           tri_thr1 = rep(NA, length(names(fittings))),
+                           tri_cut1 = rep(NA, length(names(fittings))),
+                           tri_thr2 = rep(NA, length(names(fittings))),
+                           tri_cut2 = rep(NA, length(names(fittings))))
+  for (i in names(fittings)) {
     for (j in 1:length(k_list[[i]])) {
       if (k_list[[i]][j]==2) {
-        thresholds[i,"bimodal_thr"] <- min(fittings[[i]][[j]]$mu)+3*fittings[[i]][[j]]$sigma[which(fittings[[i]][[j]]$mu == min(fittings[[i]][[j]]$mu))]
-      }else {
+        thresholds[i,"bi_thr"] <- min(fittings[[i]][[j]]$mu)+3*fittings[[i]][[j]]$sigma[which(fittings[[i]][[j]]$mu == min(fittings[[i]][[j]]$mu))]
+        thresholds[i,"bi_cut"] <- AdaptGauss::Intersect2Mixtures(Mean1 = min(fittings[[i]][[j]]$mu), SD1 = fittings[[i]][[j]]$sigma[which(fittings[[i]][[j]]$mu==min(fittings[[i]][[j]]$mu))], Weight1 = fittings[[i]][[j]]$lambda[which(fittings[[i]][[j]]$mu==min(fittings[[i]][[j]]$mu))],Mean2 = max(fittings[[i]][[j]]$mu), SD2 = fittings[[i]][[j]]$sigma[which(fittings[[i]][[j]]$mu==max(fittings[[i]][[j]]$mu))], Weight2 = fittings[[i]][[j]]$lambda[which(fittings[[i]][[j]]$mu==max(fittings[[i]][[j]]$mu))])$CutX
+
+      } else {
         if (k_list[[i]][j]==3) {
-          thresholds[i,"trimodal_thr"] <- min(fittings[[i]][[j]]$mu)+3*fittings[[i]][[j]]$sigma[which(fittings[[i]][[j]]$mu == min(fittings[[i]][[j]]$mu))]
+          thresholds[i,"tri_thr1"] <- min(fittings[[i]][[j]]$mu)+3*fittings[[i]][[j]]$sigma[which(fittings[[i]][[j]]$mu == min(fittings[[i]][[j]]$mu))]
+          thresholds[i,"tri_thr2"] <- fittings[[i]][[j]]$mu[which(fittings[[i]][[j]]$mu!=min(fittings[[i]][[j]]$mu)&fittings[[i]][[j]]$mu!=max(fittings[[i]][[j]]$mu))]+3*fittings[[i]][[j]]$sigma[which(fittings[[i]][[j]]$mu!=min(fittings[[i]][[j]]$mu)&fittings[[i]][[j]]$mu!=max(fittings[[i]][[j]]$mu))]
+          thresholds[i,"tri_cut1"] <- AdaptGauss::Intersect2Mixtures(Mean1 = min(fittings[[i]][[j]]$mu), SD1 = fittings[[i]][[j]]$sigma[which(fittings[[i]][[j]]$mu==min(fittings[[i]][[j]]$mu))], Weight1 = fittings[[i]][[j]]$lambda[which(fittings[[i]][[j]]$mu==min(fittings[[i]][[j]]$mu))],Mean2 = fittings[[i]][[j]]$mu[which(fittings[[i]][[j]]$mu!=min(fittings[[i]][[j]]$mu) & fittings[[i]][[j]]$mu!=max(fittings[[i]][[j]]$mu))], SD2 = fittings[[i]][[j]]$sigma[which(fittings[[i]][[j]]$mu!=min(fittings[[i]][[j]]$mu) & fittings[[i]][[j]]$mu!=max(fittings[[i]][[j]]$mu))], Weight2 = fittings[[i]][[j]]$lambda[which(fittings[[i]][[j]]$mu!=min(fittings[[i]][[j]]$mu) & fittings[[i]][[j]]$mu!=max(fittings[[i]][[j]]$mu))])$CutX
+          thresholds[i,"tri_cut2"] <- AdaptGauss::Intersect2Mixtures(Mean1 = fittings[[i]][[j]]$mu[which(fittings[[i]][[j]]$mu!=min(fittings[[i]][[j]]$mu) & fittings[[i]][[j]]$mu!=max(fittings[[i]][[j]]$mu))], SD1 = fittings[[i]][[j]]$sigma[which(fittings[[i]][[j]]$mu!=min(fittings[[i]][[j]]$mu) & fittings[[i]][[j]]$mu!=max(fittings[[i]][[j]]$mu))], Weight1 = fittings[[i]][[j]]$lambda[which(fittings[[i]][[j]]$mu!=min(fittings[[i]][[j]]$mu) & fittings[[i]][[j]]$mu!=max(fittings[[i]][[j]]$mu))],Mean2 = max(fittings[[i]][[j]]$mu), SD2 = fittings[[i]][[j]]$sigma[which(fittings[[i]][[j]]$mu==max(fittings[[i]][[j]]$mu))], Weight2 = fittings[[i]][[j]]$lambda[which(fittings[[i]][[j]]$mu==max(fittings[[i]][[j]]$mu))])$CutX
+
         }
       }
     }

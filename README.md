@@ -3,6 +3,16 @@ ThresholdR uses Gaussian Mixture Models concept to identify the noise population
 # Citation
 # Installation
 ```r
+#1. Install required packages:
+required_packages <- c("mixtools", "mclust", "foreach", "doParallel", "ggplot2", "AdaptGauss")
+
+# Check and install missing packages
+for (pkg in required_packages) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+}
+#2. Install ThresholdR:
 devtools::install_guithub('MDMotlagh/ThresholdR')
 ```
 # Instructions
