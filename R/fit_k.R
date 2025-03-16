@@ -71,7 +71,7 @@ fit_k <- function(data,
         if (C1.y > (1+margin.den)*unique(dfs[[i]][[j]][dfs[[i]][[j]]$x==x.mean,]$gg.y)) {
           x <- fittings[[i]][[j]]$x
           sd1 <- fittings[[i]][[j]]$sigma[which(fittings[[i]][[j]]$mu == min(fittings[[i]][[j]]$mu))]
-          cat(paste("Fixing Sigma for C1 in",i,"-Bimodal"))
+          cat(paste("Fixing Sigma for C1 in",i,"-Bimodal# "))
           while (C1.y > unique(dfs[[i]][[j]][dfs[[i]][[j]]$x==x.mean,]$gg.y)) {
             sd1 <- sd1 + 0.005
             fittings.corrected[[i]][[j]]$sigma[which(fittings.corrected[[i]][[j]]$mu == min(fittings.corrected[[i]][[j]]$mu))] <- sd1
@@ -85,7 +85,7 @@ fit_k <- function(data,
           if (C1.y < (1-margin.den)*unique(dfs[[i]][[j]][dfs[[i]][[j]]$x==x.mean,]$gg.y)) {
             x <- fittings[[i]][[j]]$x
             sd1 <- fittings[[i]][[j]]$sigma[which(fittings[[i]][[j]]$mu == min(fittings[[i]][[j]]$mu))]
-            cat(paste("Fixing Sigma for C1 in",i,"-Bimodal"))
+            cat(paste("Fixing Sigma for C1 in",i,"-Bimodal# "))
             while (C1.y < unique(dfs[[i]][[j]][dfs[[i]][[j]]$x==x.mean,]$gg.y)) {
               sd1 <- sd1 - 0.005
               fittings.corrected[[i]][[j]]$sigma[which(fittings.corrected[[i]][[j]]$mu == min(fittings.corrected[[i]][[j]]$mu))] <- sd1
@@ -117,7 +117,7 @@ fit_k <- function(data,
           if (C1.y > (1+margin.den)*unique(dfs[[i]][[j]][dfs[[i]][[j]]$x==x.mean,]$gg.y)) {
             x <- fittings[[i]][[j]]$x
             sd1 <- fittings[[i]][[j]]$sigma[which(fittings[[i]][[j]]$mu == min(fittings[[i]][[j]]$mu))]
-            cat(paste("Fixing Sigma for C1 in",i,"-Trimodal"))
+            cat(paste("Fixing Sigma for C1 in",i,"-Trimodal# "))
             while (C1.y > unique(dfs[[i]][[j]][dfs[[i]][[j]]$x==x.mean,]$gg.y)) {
               sd1 <- sd1+0.005
               fittings.corrected[[i]][[j]]$sigma[which(fittings.corrected[[i]][[j]]$mu == min(fittings.corrected[[i]][[j]]$mu))] <- sd1
@@ -134,7 +134,7 @@ fit_k <- function(data,
             if (C1.y < (1-margin.den)*unique(dfs[[i]][[j]][dfs[[i]][[j]]$x==x.mean,]$gg.y)) {
               x <- fittings[[i]][[j]]$x
               sd1 <- fittings[[i]][[j]]$sigma[which(fittings[[i]][[j]]$mu == min(fittings[[i]][[j]]$mu))]
-              cat(paste("Fixing Sigma for C1 in",i,"-Trimodal"))
+              cat(paste("Fixing Sigma for C1 in",i,"-Trimodal# "))
               while (C1.y < unique(dfs[[i]][[j]][dfs[[i]][[j]]$x==x.mean,]$gg.y)) {
                 sd1 <- sd1-0.005
                 fittings.corrected[[i]][[j]]$sigma[which(fittings.corrected[[i]][[j]]$mu == min(fittings.corrected[[i]][[j]]$mu))] <- sd1
