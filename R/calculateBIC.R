@@ -1,7 +1,7 @@
-#' Claculate BIC values
+#' Calculate BIC values
 #'
 #' @param data A data frame of CLR normalized ADT expression values. Cells are in the rows and ADT probes (surface markers) are in columns.
-#' @param k The maximimum expected number of underlying components across all markers. Default is set to 3.
+#' @param k The maximum expected number of underlying components across all markers. Default is set to 3.
 #' @returns A list of numerical vectors of BIC values corresponding to the markers. If BIC value calculation for a marker encounters an error, the function returns NA for that marker in the list.
 #' @examples
 #' bic_values <- calculateBIC(data = adt, k = 3)

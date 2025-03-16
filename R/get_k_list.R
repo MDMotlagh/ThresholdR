@@ -1,13 +1,13 @@
 #' The possible number of underlying components across all markers
 #'
 #' @param bic_values A list of numerical vectors of BIC values corresponding to the markers.
-#' @param main.markers A user-defined set of few markers with known bimodal or trimodal distributions.
+#' @param markers A user-defined set of few markers with known bimodal or trimodal distributions.
 #' @returns A list with set of possible k values for each marker as an element.
 #' @examples
-#' k.list <- get_k_list(bic_values = bic.values, main.markers = c("CD3", "CD14", "CD19", "CD45RA"))
+#' k.list <- get_k_list(bic_values = bic.values, markers = c("CD3", "CD14", "CD19", "CD45RA"))
 
 
-get_k_list <- function(bic_values, main.markers) {
+get_k_list <- function(bic_values, markers) {
   require(mixtools)
   require(mclust)
   # Initialize an empty data frame for BIC ratios
@@ -26,7 +26,7 @@ get_k_list <- function(bic_values, main.markers) {
     bic_ratios[i, "BIC3overBIC2"] <- abs((bic_values[[i]][3] - bic_values[[i]][2]) / bic_values[[i]][2])
 
   }
-  margin.thr <- min(bic_ratios[main.markers,"BIC2overBIC1"])/3
+  margin.thr <- min(bic_ratios[markers,"BIC2overBIC1"])/3
   for (i in names(bic_values)) {
     if (bic_ratios[i, "BIC2overBIC1"]>margin.thr&bic_ratios[i, "BIC3overBIC2"]>margin.thr) {
       k_list[[i]] <- c(k_list[[i]],c(2,3))
