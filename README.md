@@ -13,7 +13,7 @@ for (pkg in required_packages) {
   }
 }
 #2. Install ThresholdR:
-remotes::install_guithub('MDMotlagh/ThresholdR')
+devtools::install_github('MDMotlagh/ThresholdR')
 ```
 # Instructions
 ## Contents
