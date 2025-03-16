@@ -17,7 +17,6 @@ Imports:
     mixtools,
     mclust,
     foreach,
-    doParallel,
     ggplot2,
     AdaptGauss
 RoxygenNote: 7.3.2
