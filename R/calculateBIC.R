@@ -9,9 +9,9 @@
 
 
 calculateBIC <- function(data, k = 3) {
-  require(mixtools)
-  require(mclust)
-  require(foreach)
+  suppressPackageStartupMessages(require(foreach))
+  suppressPackageStartupMessages(require(mclust))
+  suppressPackageStartupMessages(require(mixtools))
 
   # Initialize vector to store BIC values
   bic_values <- c()

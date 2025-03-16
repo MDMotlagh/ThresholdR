@@ -9,6 +9,7 @@
 
 
 get_thresholds <- function(fittings, k_list){
+  suppressPackageStartupMessages(require(AdaptGauss))
   thresholds <- data.frame(row.names = names(fittings),
                            bi_thr = rep(NA, length(names(fittings))),
                            bi_cut = rep(NA, length(names(fittings))),

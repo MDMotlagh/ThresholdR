@@ -19,9 +19,10 @@ fit_k <- function(data,
                   maxit = 10000,
                   maxrestarts = 20,
                   seed=42) {
-  require(mixtools)
-  require(mclust)
-  require(ggplot2)
+  suppressPackageStartupMessages(require(mixtools))
+  suppressPackageStartupMessages(require(mclust))
+  suppressPackageStartupMessages(require(ggplot2))
+
   seed <- 42
   find_closest_value <- function(value, reference_vector){
     closest_index <- which.min(abs(reference_vector-value))

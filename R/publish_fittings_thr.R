@@ -11,7 +11,7 @@
 
 
 publish_fittings_thr <- function(fittings, k_list,thresholds, path=path, seed=42) {
-  require(ggplot2)
+  suppressPackageStartupMessages(require(ggplot2))
   for (i in names(fittings)) {
     if (grepl("/", i)) {
       for (j in 1:length(k_list[[i]])) {

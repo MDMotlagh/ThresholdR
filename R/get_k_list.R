@@ -8,8 +8,9 @@
 
 
 get_k_list <- function(bic_values, markers) {
-  require(mixtools)
-  require(mclust)
+  suppressPackageStartupMessages(require(mixtools))
+  suppressPackageStartupMessages(require(mclust))
+
   # Initialize an empty data frame for BIC ratios
   bic_ratios <- data.frame()
   k_list <- c()
