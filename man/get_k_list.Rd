@@ -4,12 +4,12 @@
 \alias{get_k_list}
 \title{The possible number of underlying components across all markers}
 \usage{
-get_k_list(bic_values, main.markers)
+get_k_list(bic_values, markers)
 }
 \arguments{
 \item{bic_values}{A list of numerical vectors of BIC values corresponding to the markers.}
 
-\item{main.markers}{A user-defined set of few markers with known bimodal or trimodal distributions.}
+\item{markers}{A user-defined set of few markers with known bimodal or trimodal distributions.}
 }
 \value{
 A list with set of possible k values for each marker as an element.
@@ -18,5 +18,5 @@ A list with set of possible k values for each marker as an element.
 The possible number of underlying components across all markers
 }
 \examples{
-k.list <- get_k_list(bic_values = bic.values, main.markers = c("CD3", "CD14", "CD19", "CD45RA"))
+k.list <- get_k_list(bic_values = bic.values, markers = c("CD3", "CD14", "CD19", "CD45RA"))
 }
