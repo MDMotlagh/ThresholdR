@@ -1,0 +1,185 @@
+---
+title: "Application of ThresholdR on bmcite daatset from SeuratData package"
+output: html_document
+date: "2025-03-1"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### 1. Load the Libraries and the Data
+
+```{r, message=FALSE, warning=FALSE}
+library(ThresholdR)
+library(Seurat)
+library(dplyr)
+set.seed(42)
+# we will install the 'bmcite' dataset from SeuratData::AvailableData()
+#SeuratData::InstallData('bmcite')
+#then load the data
+#so <- SeuratData::LoadData('bmcite')
+
+# Here we are loading the V4 seurat object of bmcite dataset: 
+so <- readRDS('bmcite_so.RDS')
+```
+
+### 2. Process the Seurat object
+
+```{r}
+so <- NormalizeData(so, assay = "ADT",normalization.method="CLR", margin=2)
+
+# For Seurat V4 object:
+adt <- as.data.frame(t(as.matrix(so@assays$ADT@data)))
+
+# For Seurat V5 object:
+#adt <- as.data.frame(t(as.matrix(LayerData(so, assay = "ADT",layer='data'))))
+```
+
+### 3. Running ThresholdR
+
+#### 3.1 BIC value calculation
+
+We assume that the maximum number of underlying populations (components) across all ADT markers is equal to 3 (trimodal). Then we will calculate BIC values which indicate how well a model is fitted. More positive BIC value (calculated using 'mclust' R package) indicates a better fitting:
+
+```{r}
+Sys.time()
+bic.values <- calculateBIC(data = adt, k = 3)
+```
+
+#### 3.2 Acquire the possible numbers of underlying components for each marker
+
+To choose the possible fits (k=2 and/or k=3) for each ADT, the user should assign a set of few markers which they believe to have bimodal or trimodal (non-unimodal) distributions. With this input, a margin is defined as the minimum value of BIC2/BIC1 divided by 3 across the set of user-provided markers. If BIC(k+1) is greater BIC(k) by at least that calculated margin in any ADT marker, k+1 is also included in the list of possible k number of components for the corresponding marker.
+
+```{r}
+k.list <- get_k_list(bic_values = bic.values, markers = c("CD3", "CD14", "CD19", "CD45RA"))
+
+# If the user wishes to include k=2 and k=3 for all markers in the data matrix, they could modify k_list as the following:
+# k.list <- list()
+# for (i in names(adt)) {
+#   k.list[[i]] <- c(2,3)
+# }
+```
+
+In order to see if a marker is not meeting the threshold for any k, and is dropped out of the k_list, we can have a look:
+
+```{r}
+names(bic.values)[!names(bic.values) %in% names(k.list)]
+```
+
+With the estimated list of possible k(s) for markers, we can run the fitting algorithm:
+
+```{r}
+fittings <- fit_k(data = adt, k_list = k.list, margin.den = 0.1, epsilon = 0.01, maxit = 1000, maxrestarts = 10)
+```
+
+#### 3.3 Calculate the thresholds
+
+We then proceed to calculate different thresholds in bimodal and trimodal fittings:
+
+```{r}
+thresholds <- get_thresholds(fittings = fittings, k_list = k.list)
+```
+
+#### 3.4 Publish the bimodal and trimodal fittings
+
+```{r}
+publish_fittings_thr(fittings = fittings, k_list = k.list, thresholds = thresholds, path = '02Plots/', seed = 42)
+Sys.time()
+```
+
+The ThresholdR process is completed within 1 minute when running on a MacBook Pro M4 with 16 cores or 2-3 minutes in a linux environment with 1 CPU.
+
+### 4. Application of the thresholds
+
+Save the threshold values for all markers:
+
+```{r}
+# write.csv(thresholds, '03AllThresholds.csv')
+```
+
+We advise users to choose between suggested thresholds in the '03AllThresholds.csv' file and make the '04All_Markers.csv' file with the extra columns of 'threshold_col' and 'threshold_value'. Then we can threshold the ADT data. This is done through subtracting the final threshold values stored in the 'threshold_value' column from each marker expression level in each cell. At the end, the expression levels below the thresholds are set to zero.
+
+```{r}
+markers.thr <- read.csv('04All_Markers.csv')
+thAb <- adt[,names(fittings)]
+for (i in colnames(thAb)) {
+  thAb[,i] <- thAb[,i]-markers.thr[markers.thr$marker_name==i,"threshold_value"]
+  thAb[thAb[,i]<0,i] <- 0
+}
+
+# if you do not wish to select a threshold out of the suggested ones, you can use the bi_thr column value across the markers that have k=2 in their set of possible k(s) in within k_list:
+# thAb <- adt[,names(fittings)]
+# for (i in colnames(thAb)) {
+#   thAb[,i] <- thAb[,i]-markers.thr[markers.thr$marker_name==i,"bi_thr"]
+#   thAb[thAb[,i]<0,i] <- 0
+# }
+```
+
+### 5. Cell-Type Annotation:
+
+To annotate the 7 major cell types of B, CD4T, CD8T, classical (cMo), intermediate (iMo), and non-classical (nMo) monocytes, and NK cells, we use the thresholded values of the following set of main markers: CD3, CD4, CD8 (CD8a), CD14, CD16, CD19, and CD56:
+
+```{r}
+so[["thAb"]] <- CreateAssayObject(data=t(as.matrix(thAb)))
+DefaultAssay(so) <- "thAb"
+so$annotation <- ifelse(colnames(so) %in% WhichCells(so, expression = CD3==0 & CD4==0 & CD8a==0 & CD14==0 & CD16==0 & CD19>0 & CD56==0), "B",
+                        ifelse(colnames(so) %in% WhichCells(so, expression = CD3>0 & CD4>0 & CD8a==0 & CD14==0 & CD16==0 & CD19==0 & CD56==0), "CD4T",
+                               ifelse(colnames(so) %in% WhichCells(so, expression = CD3>0 & CD4==0 & CD8a>0 & CD14==0 & CD19==0 & CD56==0), "CD8T",
+                                      ifelse(colnames(so) %in% WhichCells(so, expression = CD3==0 & CD14>0 & CD16==0 & CD19==0 & CD56==0), "cMo",
+                                             ifelse(colnames(so) %in% WhichCells(so, expression = CD3==0 & CD14>0 & CD16>0 & CD19==0 & CD56==0), "iMo",
+                                                    ifelse(colnames(so) %in% WhichCells(so, expression = CD3==0 & CD14==0 & CD16>0 & CD19==0 & CD56==0), "nMo",
+                                                           ifelse(colnames(so) %in% union(WhichCells(so, expression = CD3==0 & CD14==0 & CD16==0 & CD19==0 & CD56>0),
+                                                                                          WhichCells(so, expression = CD3==0 & CD14==0 & CD16>0 & CD19==0 & CD56>0)), "NK",
+                                                                  "Rem")))))))
+table(so$annotation)
+```
+
+### 6. Visualizing the annotated cell types
+
+Here we propose using of ADT assay for the purpose of dimension reduction:
+
+```{r}
+DefaultAssay(so) <- "ADT"
+so <- so %>%
+  ScaleData(features = rownames(so)) %>%
+  RunPCA(features = rownames(so))
+ElbowPlot(so,ndims = 24)
+```
+
+Choosing the first 20 components from PCA:
+
+```{r}
+so <- so %>%
+  FindNeighbors(dims = 1:20)%>%
+  FindClusters(resolution = 0.3, random.seed = 42) %>% 
+  RunUMAP(dims = 1:20, spread = 1.5, min.dist = 0.5, seed.use = 42)
+DimPlot(so, group.by = 'annotation')
+```
+
+Since we have not included CD34 in our main markers, the (CD34+) myeloid progenitors are annotated as the remaining (Rem) cell types. We will plot the denoised expression levels of the 7 main markers plus CD34 next:
+
+```{r}
+library(ggplot2)
+library(patchwork)
+for (i in c("CD3","CD4","CD8a","CD14","CD16","CD19", "CD56", "CD34")) {
+  p.noisy <- FeaturePlot(so, features = paste0("adt_",i), slot = "data")+
+    ggtitle(label = paste("Noisy", i))
+  p.denoised <- FeaturePlot(so, features = paste0("thab_",i), slot = "data")+
+        ggtitle(label = paste("Denoised", i))
+
+  print(wrap_plots(p.noisy, p.denoised, ncol = 2))
+}
+
+```
+
+To see how ThresholdR changed the noise across the major cell types, we exclude the cells with Rem label, and then compare the two dotplots:
+
+```{r}
+DefaultAssay(so) <- "ADT"
+print(DotPlot(object = subset(so, cells = WhichCells(so, expression = annotation!="Rem")), features = c("CD3","CD4","CD8a","CD14","CD16","CD19", "CD56"), group.by = 'annotation', dot.min = 0.05, scale = F)+
+         ggtitle(label = paste("Noisy ADT")))
+DefaultAssay(so) <- "thAb"
+print(DotPlot(object = subset(so, cells = WhichCells(so, expression = annotation!="Rem")), features = c("CD3","CD4","CD8a","CD14","CD16","CD19", "CD56"), group.by = 'annotation', dot.min = 0.05, scale = F)+
+        ggtitle(label = paste("Denoised thAb")))
+```
