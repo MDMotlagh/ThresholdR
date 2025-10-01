@@ -10,22 +10,22 @@
 get_k_list <- function(bic_values, markers) {
   suppressPackageStartupMessages(require(mixtools))
   suppressPackageStartupMessages(require(mclust))
-
+  bic_values <- Filter(function(x) !all(is.na(x)), bic_values)
   # Initialize an empty data frame for BIC ratios
   bic_ratios <- data.frame()
   k_list <- c()
-
+  
   # Set up the dimensions and names for the data frame
   bic_ratios[1:length(bic_values), 1:2] <- NA
   rownames(bic_ratios) <- names(bic_values)
   colnames(bic_ratios) <- c("BIC2overBIC1", "BIC3overBIC2")
-
+  
   # Calculate the BIC ratios
   for (i in names(bic_values)) {
     print(i)
     bic_ratios[i, "BIC2overBIC1"] <- abs((bic_values[[i]][2] - bic_values[[i]][1]) / bic_values[[i]][1])
     bic_ratios[i, "BIC3overBIC2"] <- abs((bic_values[[i]][3] - bic_values[[i]][2]) / bic_values[[i]][2])
-
+    
   }
   margin.thr <- min(bic_ratios[markers,"BIC2overBIC1"])/3
   for (i in names(bic_values)) {
