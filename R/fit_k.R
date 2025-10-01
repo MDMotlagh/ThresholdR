@@ -1,4 +1,4 @@
-#' Fit for the possible number of unrlying components (k) across all markers
+#' Fit for the possible number of underlying components (k) across all markers
 #'
 #' @param data A data frame of CLR normalized ADT expression values. Cells are in the rows and ADT probes (surface markers) are in columns.
 #' @param k_list A list of the possible number of underlying components across all markers.
@@ -23,136 +23,83 @@ fit_k <- function(data,
   suppressPackageStartupMessages(require(mclust))
   suppressPackageStartupMessages(require(ggplot2))
 
-  seed <- 42
-  find_closest_value <- function(value, reference_vector){
-    closest_index <- which.min(abs(reference_vector-value))
-    closest_value <- reference_vector[closest_index]
-    return(closest_value)
-  }
-
-  find_closest_x <- function(value, reference_vector) {
-    closest_value <- reference_vector[which.min(abs(reference_vector -value))]
-    return(closest_value)
-  }
-  require(mixtools)
-  require(mclust)
-
-  fittings <- list()
   set.seed(seed)
-  ggdensity <- c()
-  dfs <- c()
-  dfs.corrected <- c()
-  fittings.corrected <- c()
-  for (i in colnames(data)) {
-    for (j in 1:length(k_list[[i]])) {
-      cat(paste0(i, ": ",k_list[[i]][j]," modal: "))
-      fittings[[i]][[j]] <- normalmixEM(data[data[, i]>0, i], k = k_list[[i]][j], epsilon = epsilon, maxit = maxit, maxrestarts = maxrestarts)
+  fittings <- list()
+  corrected_fittings <- list()
+
+    # Function to optimize sigma for component 1 to match empirical density
+  optimize_sigma <- function(mu, lambda, target_y, x_val, init_sd = 1) {
+    objective <- function(sd1) {
+      d1_y <- dnorm(x_val, mean = mu, sd = sd1) * lambda
+      (d1_y - target_y)^2
     }
+    res <- optim(par = init_sd, fn = objective, method = "L-BFGS-B", lower = 1e-4, upper = 10)
+    return(res$par)
   }
-  for (i in colnames(data)) {
-    ggdensity[[i]] <- ggplot_build(ggplot(data[data[, i]>0, ], aes(x=data[data[, i]>0, i]))+
-                                     geom_density(adjust=1))
-    for (j in 1:length(k_list[[i]])) {
-      if (k_list[[i]][j] == 2) {
-        x <- fittings[[i]][[j]]$x
-        dfs[[i]][[j]] <- data.frame(x = x,
-                                    density1 = dnorm(x, mean = min(fittings[[i]][[j]]$mu), sd = fittings[[i]][[j]]$sigma[which(fittings[[i]][[j]]$mu == min(fittings[[i]][[j]]$mu))]) * fittings[[i]][[j]]$lambda[which(fittings[[i]][[j]]$mu == min(fittings[[i]][[j]]$mu))],
-                                    density2 = dnorm(x, mean = max(fittings[[i]][[j]]$mu), sd = fittings[[i]][[j]]$sigma[which(fittings[[i]][[j]]$mu == max(fittings[[i]][[j]]$mu))]) * fittings[[i]][[j]]$lambda[which(fittings[[i]][[j]]$mu == max(fittings[[i]][[j]]$mu))])
-        #print(paste("Adding gg.x and gg.y for bimodal",i,  "DF-No:", which(names(dfs) == i)))
-        dfs[[i]][[j]]$gg.x <- sapply(dfs[[i]][[j]]$x, find_closest_value, reference_vector = ggdensity[[i]]$data[[1]]$x)
-        dfs[[i]][[j]]$gg.y <- ggdensity[[i]]$data[[1]]$y[match(dfs[[i]][[j]]$gg.x, ggdensity[[i]]$data[[1]]$x)]
-        dfs.corrected[[i]][[j]] <- dfs[[i]][[j]]
-        fittings.corrected[[i]][[j]] <- fittings[[i]][[j]]
-        # Find the closes x value in gg.x
-        x.mean <- find_closest_x(value = min(fittings[[i]][[1]]$mu), reference_vector = fittings[[i]][[1]]$x)
-        C1.y <- unique(dfs[[i]][[j]][dfs[[i]][[j]]$x==x.mean,]$density1)
-        C2.y <- unique(dfs[[i]][[j]][dfs[[i]][[j]]$x==x.mean,]$density2)
 
-        if (C1.y > (1+margin.den)*unique(dfs[[i]][[j]][dfs[[i]][[j]]$x==x.mean,]$gg.y)) {
-          x <- fittings[[i]][[j]]$x
-          sd1 <- fittings[[i]][[j]]$sigma[which(fittings[[i]][[j]]$mu == min(fittings[[i]][[j]]$mu))]
-          cat(paste("Fixing Sigma for C1 in",i,"-Bimodal# "))
-          while (C1.y > unique(dfs[[i]][[j]][dfs[[i]][[j]]$x==x.mean,]$gg.y)) {
-            sd1 <- sd1 + 0.005
-            fittings.corrected[[i]][[j]]$sigma[which(fittings.corrected[[i]][[j]]$mu == min(fittings.corrected[[i]][[j]]$mu))] <- sd1
-            dfs.corrected[[i]][[j]] <- data.frame(x = x,
-                                                  density1 = dnorm(x, mean = min(fittings.corrected[[i]][[j]]$mu), sd = fittings.corrected[[i]][[j]]$sigma[which(fittings.corrected[[i]][[j]]$mu == min(fittings.corrected[[i]][[j]]$mu))]) * fittings.corrected[[i]][[j]]$lambda[which(fittings.corrected[[i]][[j]]$mu == min(fittings.corrected[[i]][[j]]$mu))],
-                                                  density2 = dnorm(x, mean = max(fittings.corrected[[i]][[j]]$mu), sd = fittings.corrected[[i]][[j]]$sigma[which(fittings.corrected[[i]][[j]]$mu == max(fittings.corrected[[i]][[j]]$mu))]) * fittings.corrected[[i]][[j]]$lambda[which(fittings.corrected[[i]][[j]]$mu == max(fittings.corrected[[i]][[j]]$mu))])
-            # Find the closest x value in gg.x
-            C1.y <- unique(dfs.corrected[[i]][[j]][dfs.corrected[[i]][[j]]$x==x.mean,]$density1)
-          }
-        }else {
-          if (C1.y < (1-margin.den)*unique(dfs[[i]][[j]][dfs[[i]][[j]]$x==x.mean,]$gg.y)) {
-            x <- fittings[[i]][[j]]$x
-            sd1 <- fittings[[i]][[j]]$sigma[which(fittings[[i]][[j]]$mu == min(fittings[[i]][[j]]$mu))]
-            cat(paste("Fixing Sigma for C1 in",i,"-Bimodal# "))
-            while (C1.y < unique(dfs[[i]][[j]][dfs[[i]][[j]]$x==x.mean,]$gg.y)) {
-              sd1 <- sd1 - 0.005
-              fittings.corrected[[i]][[j]]$sigma[which(fittings.corrected[[i]][[j]]$mu == min(fittings.corrected[[i]][[j]]$mu))] <- sd1
-              dfs.corrected[[i]][[j]] <- data.frame(x = x,
-                                                    density1 = dnorm(x, mean = min(fittings.corrected[[i]][[j]]$mu), sd = fittings.corrected[[i]][[j]]$sigma[which(fittings.corrected[[i]][[j]]$mu == min(fittings.corrected[[i]][[j]]$mu))]) * fittings.corrected[[i]][[j]]$lambda[which(fittings.corrected[[i]][[j]]$mu == min(fittings.corrected[[i]][[j]]$mu))],
-                                                    density2 = dnorm(x, mean = max(fittings.corrected[[i]][[j]]$mu), sd = fittings.corrected[[i]][[j]]$sigma[which(fittings.corrected[[i]][[j]]$mu == max(fittings.corrected[[i]][[j]]$mu))]) * fittings.corrected[[i]][[j]]$lambda[which(fittings.corrected[[i]][[j]]$mu == max(fittings.corrected[[i]][[j]]$mu))])
-              # Find the closest x value in gg.x
-              C1.y <- unique(dfs.corrected[[i]][[j]][dfs.corrected[[i]][[j]]$x==x.mean,]$density1)
-            }
-          }
+  for (var in names(k_list)) {
+    variable_data <- data[data[, var] > 0, var]
+    kde <- density(variable_data, from = 0)
+
+    fittings[[var]] <- list()
+    corrected_fittings[[var]] <- list()
+
+    for (k_idx in seq_along(k_list[[var]])) {
+      k <- k_list[[var]][k_idx]
+      cat(paste0(var, ": ", k, " components: "))
+
+
+      # Fit GMM
+      fit <- tryCatch(
+        {
+          normalmixEM(variable_data,
+                      k = k,
+                      epsilon = epsilon,
+                      maxit = maxit,
+                      maxrestarts = maxrestarts)
+          },
+        error = function(e) {
+          cat(paste("Error - skipping", k, "components for", var, "\n"))
+          return(NULL)
         }
-      }else {
-        if (k_list[[i]][j] == 3) {
-          x <- fittings[[i]][[j]]$x
-          dfs[[i]][[j]] <- data.frame(x = x,
-                                      density1 = dnorm(x, mean = min(fittings[[i]][[j]]$mu), sd = fittings[[i]][[j]]$sigma[which(fittings[[i]][[j]]$mu == min(fittings[[i]][[j]]$mu))]) * fittings[[i]][[j]]$lambda[which(fittings[[i]][[j]]$mu == min(fittings[[i]][[j]]$mu))],
-                                      density2 = dnorm(x, mean = fittings[[i]][[j]]$mu[which(fittings[[i]][[j]]$mu != min(fittings[[i]][[j]]$mu) & fittings[[i]][[j]]$mu != max(fittings[[i]][[j]]$mu))],
-                                                       sd = fittings[[i]][[j]]$sigma[which(fittings[[i]][[j]]$mu != min(fittings[[i]][[j]]$mu) & fittings[[i]][[j]]$mu != max(fittings[[i]][[j]]$mu))]) * fittings[[i]][[j]]$lambda[which(fittings[[i]][[j]]$mu != min(fittings[[i]][[j]]$mu) & fittings[[i]][[j]]$mu != max(fittings[[i]][[j]]$mu))],
-                                      density3 = dnorm(x, mean = max(fittings[[i]][[j]]$mu), sd = fittings[[i]][[j]]$sigma[which(fittings[[i]][[j]]$mu == max(fittings[[i]][[j]]$mu))]) * fittings[[i]][[j]]$lambda[which(fittings[[i]][[j]]$mu == max(fittings[[i]][[j]]$mu))])
-          #print(paste("Adding gg.x and gg.y for trimodal",i,  "DF-No:", which(names(dfs) == i)))
-          dfs[[i]][[j]]$gg.x <- sapply(dfs[[i]][[j]]$x, find_closest_value, reference_vector = ggdensity[[i]]$data[[1]]$x)
-          dfs[[i]][[j]]$gg.y <- ggdensity[[i]]$data[[1]]$y[match(dfs[[i]][[j]]$gg.x, ggdensity[[i]]$data[[1]]$x)]
-          dfs.corrected[[i]][[j]] <- dfs[[i]][[j]]
-          fittings.corrected[[i]][[j]] <- fittings[[i]][[j]]
-          # Find the closes x value in gg.x
-          x.mean <- find_closest_x(value = min(fittings[[i]][[j]]$mu), reference_vector = fittings[[i]][[j]]$x)
-          C1.y <- unique(dfs[[i]][[j]][dfs[[i]][[j]]$x==x.mean,]$density1)
-          C2.y <- unique(dfs[[i]][[j]][dfs[[i]][[j]]$x==x.mean,]$density2)
-          if (C1.y > (1+margin.den)*unique(dfs[[i]][[j]][dfs[[i]][[j]]$x==x.mean,]$gg.y)) {
-            x <- fittings[[i]][[j]]$x
-            sd1 <- fittings[[i]][[j]]$sigma[which(fittings[[i]][[j]]$mu == min(fittings[[i]][[j]]$mu))]
-            cat(paste("Fixing Sigma for C1 in",i,"-Trimodal# "))
-            while (C1.y > unique(dfs[[i]][[j]][dfs[[i]][[j]]$x==x.mean,]$gg.y)) {
-              sd1 <- sd1+0.005
-              fittings.corrected[[i]][[j]]$sigma[which(fittings.corrected[[i]][[j]]$mu == min(fittings.corrected[[i]][[j]]$mu))] <- sd1
-              dfs.corrected[[i]][[j]] <- data.frame(x = x,
-                                                    density1 = dnorm(x, mean = min(fittings.corrected[[i]][[j]]$mu), sd = fittings.corrected[[i]][[j]]$sigma[which(fittings.corrected[[i]][[j]]$mu == min(fittings.corrected[[i]][[j]]$mu))]) * fittings.corrected[[i]][[j]]$lambda[which(fittings.corrected[[i]][[j]]$mu == min(fittings.corrected[[i]][[j]]$mu))],
-                                                    density2 = dnorm(x, mean = fittings.corrected[[i]][[j]]$mu[which(fittings.corrected[[i]][[j]]$mu != min(fittings.corrected[[i]][[j]]$mu) & fittings.corrected[[i]][[j]]$mu != max(fittings.corrected[[i]][[j]]$mu))],
-                                                                     sd = fittings.corrected[[i]][[j]]$sigma[which(fittings.corrected[[i]][[j]]$mu != min(fittings.corrected[[i]][[j]]$mu) & fittings.corrected[[i]][[j]]$mu != max(fittings.corrected[[i]][[j]]$mu))]) * fittings.corrected[[i]][[j]]$lambda[which(fittings.corrected[[i]][[j]]$mu != min(fittings.corrected[[i]][[j]]$mu) & fittings.corrected[[i]][[j]]$mu != max(fittings.corrected[[i]][[j]]$mu))],
-                                                    density3 = dnorm(x, mean = max(fittings.corrected[[i]][[j]]$mu), sd = fittings.corrected[[i]][[j]]$sigma[which(fittings.corrected[[i]][[j]]$mu == max(fittings.corrected[[i]][[j]]$mu))]) * fittings.corrected[[i]][[j]]$lambda[which(fittings.corrected[[i]][[j]]$mu == max(fittings.corrected[[i]][[j]]$mu))])
-              # Find the closes x value in gg.x
-              C1.y <- unique(dfs.corrected[[i]][[j]][dfs.corrected[[i]][[j]]$x==x.mean,]$density1)
+        )
 
-            }
-          }else {
-            if (C1.y < (1-margin.den)*unique(dfs[[i]][[j]][dfs[[i]][[j]]$x==x.mean,]$gg.y)) {
-              x <- fittings[[i]][[j]]$x
-              sd1 <- fittings[[i]][[j]]$sigma[which(fittings[[i]][[j]]$mu == min(fittings[[i]][[j]]$mu))]
-              cat(paste("Fixing Sigma for C1 in",i,"-Trimodal# "))
-              while (C1.y < unique(dfs[[i]][[j]][dfs[[i]][[j]]$x==x.mean,]$gg.y)) {
-                sd1 <- sd1-0.005
-                fittings.corrected[[i]][[j]]$sigma[which(fittings.corrected[[i]][[j]]$mu == min(fittings.corrected[[i]][[j]]$mu))] <- sd1
-                dfs.corrected[[i]][[j]] <- data.frame(x = x,
-                                                      density1 = dnorm(x, mean = min(fittings.corrected[[i]][[j]]$mu), sd = fittings.corrected[[i]][[j]]$sigma[which(fittings.corrected[[i]][[j]]$mu == min(fittings.corrected[[i]][[j]]$mu))]) * fittings.corrected[[i]][[j]]$lambda[which(fittings.corrected[[i]][[j]]$mu == min(fittings.corrected[[i]][[j]]$mu))],
-                                                      density2 = dnorm(x, mean = fittings.corrected[[i]][[j]]$mu[which(fittings.corrected[[i]][[j]]$mu != min(fittings.corrected[[i]][[j]]$mu) & fittings.corrected[[i]][[j]]$mu != max(fittings.corrected[[i]][[j]]$mu))],
-                                                                       sd = fittings.corrected[[i]][[j]]$sigma[which(fittings.corrected[[i]][[j]]$mu != min(fittings.corrected[[i]][[j]]$mu) & fittings.corrected[[i]][[j]]$mu != max(fittings.corrected[[i]][[j]]$mu))]) * fittings.corrected[[i]][[j]]$lambda[which(fittings.corrected[[i]][[j]]$mu != min(fittings.corrected[[i]][[j]]$mu) & fittings.corrected[[i]][[j]]$mu != max(fittings.corrected[[i]][[j]]$mu))],
-                                                      density3 = dnorm(x, mean = max(fittings.corrected[[i]][[j]]$mu), sd = fittings.corrected[[i]][[j]]$sigma[which(fittings.corrected[[i]][[j]]$mu == max(fittings.corrected[[i]][[j]]$mu))]) * fittings.corrected[[i]][[j]]$lambda[which(fittings.corrected[[i]][[j]]$mu == max(fittings.corrected[[i]][[j]]$mu))])
-                # Find the closes x value in gg.x
-                C1.y <- unique(dfs.corrected[[i]][[j]][dfs.corrected[[i]][[j]]$x==x.mean,]$density1)
+      if (is.null(fit)) next
 
-              }
-            }
-          }
-        }
+      fittings[[var]][[k_idx]] <- fit
+      corrected_fit <- fit  # Copy to allow correction
+
+      # Focus only on fixing the lowest-mean component
+      mu1_idx <- which.min(fit$mu)
+      mu1 <- fit$mu[mu1_idx]
+      lambda1 <- fit$lambda[mu1_idx]
+      sd1_init <- fit$sigma[mu1_idx]
+
+      # Get empirical KDE at mu1
+      emp_y_at_mu1 <- approx(kde$x, kde$y, xout = mu1)$y
+
+      # Model-predicted density at mu1
+      model_y_at_mu1 <- dnorm(mu1, mean = mu1, sd = sd1_init) * lambda1
+
+      if (model_y_at_mu1 > (1 + margin.den) * emp_y_at_mu1 ||
+          model_y_at_mu1 < (1 - margin.den) * emp_y_at_mu1) {
+        cat("Fixing sigma for C1 in", var, "- k =", k, "\n")
+
+        sd1_new <- optimize_sigma(
+          mu = mu1,
+          lambda = lambda1,
+          target_y = emp_y_at_mu1,
+          x_val = mu1,
+          init_sd = sd1_init
+          )
+
+        # Update corrected fit
+        corrected_fit$sigma[mu1_idx] <- sd1_new
       }
+
+      corrected_fittings[[var]][[k_idx]] <- corrected_fit
     }
   }
 
-  return(fittings.corrected)
+  return(corrected_fittings)
 }

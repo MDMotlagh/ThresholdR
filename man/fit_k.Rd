@@ -2,7 +2,7 @@
 % Please edit documentation in R/fit_k.R
 \name{fit_k}
 \alias{fit_k}
-\title{Fit for the possible number of unrlying components (k) across all markers}
+\title{Fit for the possible number of underlying components (k) across all markers}
 \usage{
 fit_k(
   data,
@@ -31,7 +31,7 @@ fit_k(
 A list of parameters such as mean, standard-deviation, weight (lambda) for each component in different k values across the markers. This will later be used to define thresholds.
 }
 \description{
-Fit for the possible number of unrlying components (k) across all markers
+Fit for the possible number of underlying components (k) across all markers
 }
 \examples{
 fittings <- fit_k(data = adt, k_list = k.list, margin.den = 0.1, epsilon = 0.01, maxit = 1000, maxrestarts = 10)
